@@ -1,37 +1,32 @@
 package main
 
 import (
-	"jecfe/auth0-account-management/controller"
-	"jecfe/auth0-account-management/docs"
-	_ "jecfe/auth0-account-management/docs"
+	"jecfe/auth0-account-management/middleware"
+	_ "jecfe/auth0-account-management/middleware"
+	"net/http"
 
-	_ "jecfe/auth0-account-management/controller"
+	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
+	"github.com/auth0/go-jwt-middleware/v2/validator"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+func GetClaimsFromContext(ctx *gin.Context) validator.RegisteredClaims {
+	claims, ok := ctx.Request.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
+	if !ok {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+	}
+
+	return claims.RegisteredClaims
+}
 
 func main() {
-	docs.SwaggerInfo.Title = "Swagger Example API"
-	docs.SwaggerInfo.Description = "This is a sample server Petstore server."
-	docs.SwaggerInfo.Version = "1.0"
-	docs.SwaggerInfo.Host = "localhost:3020"
-	docs.SwaggerInfo.BasePath = "/v1"
-	docs.SwaggerInfo.Schemes = []string{"http", "https"}
+	router := gin.Default()
+	router.Use(middleware.CheckJWT())
+	router.GET("/", func(ctx *gin.Context) {
+		claims := GetClaimsFromContext(ctx)
+		ctx.JSON(http.StatusOK, claims.Subject)
+	})
 
-	r := gin.Default()
-
-	c := controller.NewController()
-
-	v1 := r.Group("/v1")
-	{
-		example := v1.Group("/example")
-		{
-			example.GET("/ping", c.PingExample)	
-		}
-	}
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	r.Run(":3020")
+	router.Run(":5080")
 }
