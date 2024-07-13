@@ -1,6 +1,7 @@
 package main
 
 import (
+	"jecfe/auth0-account-management/controller"
 	"jecfe/auth0-account-management/middleware"
 	_ "jecfe/auth0-account-management/middleware"
 	"net/http"
@@ -22,7 +23,11 @@ func GetClaimsFromContext(ctx *gin.Context) validator.RegisteredClaims {
 
 func main() {
 	router := gin.Default()
+	x := controller.NewController();
 	router.Use(middleware.CheckJWT())
+
+	x.
+	
 	router.GET("/", func(ctx *gin.Context) {
 		claims := GetClaimsFromContext(ctx)
 		ctx.JSON(http.StatusOK, claims.Subject)
